@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-manager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-manager
+  template:
+    metadata:
+      labels:
+        app: order-manager
+    spec:
+      containers:
+      - name: order-manager
+        image: jeansbs/order_manager:1.0
+        ports:
+        - containerPort: 3000
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 15
+        resources:
+          requests:
+            cpu: 10m
+        env:
+          - name: MONGO_CONNECTION_STRING
+            valueFrom:
+              configMapKeyRef:
+                name: order-manager-config
+                key: MONGO_CONNECTION_STRING

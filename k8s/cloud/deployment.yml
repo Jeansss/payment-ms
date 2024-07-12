@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-manager
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-manager
+  template:
+    metadata:
+      labels:
+        app: order-manager
+    spec:
+      containers:
+      - name: order-manager
+        image: 975050002971.dkr.ecr.us-east-1.amazonaws.com/order-manager:latest
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+        resources:
+          requests:
+            cpu: 10m
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: MONGO_CONNECTION_STRING
+            valueFrom:
+              configMapKeyRef:
+                name: order-manager-config
+                key: MONGO_CONNECTION_STRING
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-order-manager
+spec:
+  type: LoadBalancer
+  selector:
+    app: order-manager
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

@@ -1,0 +1,67 @@
+### Get All Customers
+GET http://localhost:3000/customers
+
+### Get Customer By ID
+GET http://localhost:3000/customers/id/659c85f6a875970be57aa7c5
+
+### Get Customer by CPF
+GET http://localhost:3000/customers/cpf/1234
+
+### Create Customer
+POST http://localhost:3000/customers
+Content-Type: application/json
+
+{
+    "email": "Jean_CanetaAzul@non_validprovider.com",
+    "cpf": "35690685600",
+    "name": "Jean Caneta Azul"
+}
+
+### Update Customer
+PUT http://localhost:3000/customers/659c85f6a875970be57aa7c5
+Content-Type: application/json
+
+{
+    "email": "jean_canetaazul@anothervalidprovider.com"
+}
+
+### Delete Customer
+DELETE http://localhost:3000/customers/659c85f6a875970be57aa7c5
+
+### Get All Orders
+GET http://localhost:3000/orders
+
+### Get All Products
+GET http://localhost:3000/products
+
+
+### Get Product By Category
+GET http://localhost:3000/products/category/lanche
+
+
+### Create Product
+POST http://localhost:3000/products
+Content-Type: application/json
+
+{     
+    "name": "Coca",
+    "category": "bebida",
+    "value": 10.5,
+    "quantity": 1,
+    "description": "Uma bebidinha gelada Majin Boo hi hi hi" 
+}
+
+### Delete Product
+DELETE http://localhost:3000/products/659c8f42f13ebe00d6809135
+
+### Create Payment
+POST http://localhost:3000/payments
+Content-Type: application/json
+
+{     
+    "name": "CASH",     
+    "description": "Cash Payment Method" 
+}
+
+### Gel All Payment Methods
+GET http://localhost:3000/payments
