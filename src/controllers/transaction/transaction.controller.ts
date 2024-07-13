@@ -21,6 +21,7 @@ export class TransactionController {
   @Post('/cart/:cartId/')
   async createTransaction(@Param('cartId') cartId: string, @Body() transactionDto: TransactionDTO): Promise<Transaction> {
     this.logger.log(`createTransaction(TransactionDTO) - Start`);
+    this.logger.log(cartId);
     return this.transactionUseCases.createTransaction(transactionDto, cartId);
   }
 

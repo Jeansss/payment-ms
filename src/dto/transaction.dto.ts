@@ -1,5 +1,5 @@
+import { IsNotEmpty, IsString } from '@nestjs/class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class TransactionDTO {
   @ApiProperty()
