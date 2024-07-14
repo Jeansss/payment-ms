@@ -9,13 +9,13 @@ export class PaymentUseCases {
 
     constructor(private dataServices: IDataServices, private paymentFactoryService: PaymentFactoryService) { }
 
-    getAllPayments(): Promise<PaymentMethod[]> {
-        return this.dataServices.payments.getAll();
+    async getAllPayments(): Promise<PaymentMethod[]> {
+        return await this.dataServices.payments.getAll();
     }
 
-    getPaymentById(id: string): Promise<PaymentMethod> {
+    async getPaymentById(id: string): Promise<PaymentMethod> {
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            const foundPayment = this.dataServices.payments.get(id);
+            const foundPayment = await this.dataServices.payments.get(id);
 
             if (foundPayment != null) {
                 return foundPayment;
@@ -25,22 +25,20 @@ export class PaymentUseCases {
         } else {
             throw new BadRequestException(`'${id}' is not a valid ObjectID`);
         }
-
-
     }
 
-    createPayment(paymentDTO: PaymentDTO): Promise<PaymentMethod> {
+    async createPayment(paymentDTO: PaymentDTO): Promise<PaymentMethod> {
         const newPayment = this.paymentFactoryService.createNewPayment(paymentDTO);
         return this.dataServices.payments.create(newPayment);
     }
 
-    updatePayment(paymentId: string, paymentDTO: PaymentDTO): Promise<PaymentMethod> {
+    async updatePayment(paymentId: string, paymentDTO: PaymentDTO): Promise<PaymentMethod> {
         const newPayment = this.paymentFactoryService.updatePayment(paymentDTO);
         return this.dataServices.payments.update(paymentId, newPayment);
     }
 
-    delete(paymentId: string) {
-        this.getPaymentById(paymentId)
+    async delete(paymentId: string) {
+        await this.getPaymentById(paymentId)
             .then(this.dataServices.payments.delete(paymentId));
     }
 

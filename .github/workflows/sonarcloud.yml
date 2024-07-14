@@ -1,0 +1,42 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  sonarQube:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.16.1'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test -- --coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=Jeansss_customer-ms
+            -Dsonar.organization=jeansss
+            -Dsonar.sources=./src
+            -Dsonar.tests=./test
+            -Dsonar.test.inclusions="**/*.spec.ts"
+            -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.exclusions=src/main.ts,src/**/*.module.ts,src/payment/app.controller.ts,src/core/abstracts/generic-repository.abstract.ts,src/frameworks/data-services/mongo/mongo-data-services.service.ts,src/use-cases/payment/payment-factory.service.ts,src/use-cases/payment/payment.service.ts,src/frameworks/data-services/mongo/entities/cart.model.ts,src/frameworks/data-services/mongo/entities/customer.model.ts,src/frameworks/data-services/mongo/entities/order.model.ts,src/frameworks/data-services/mongo/entities/payment.model.ts,src/frameworks/data-services/mongo/entities/product.model.ts,src/frameworks/data-services/mongo/entities/user.model.ts,src/dto/webhook-transaction.dto.ts,src/controllers/app.controller.ts
