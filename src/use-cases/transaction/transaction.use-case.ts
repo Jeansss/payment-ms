@@ -12,7 +12,7 @@ export class TransactionUseCases {
 
     async getTransactionById(id: string): Promise<Transaction> {
         if (id.match(/^[0-9a-fA-F]{24}$/)) {
-            const foundTransaction = this.dataServices.transactions.get(id);
+            const foundTransaction = await this.dataServices.transactions.get(id);
 
             if (foundTransaction != null) {
                 return foundTransaction;
@@ -26,12 +26,12 @@ export class TransactionUseCases {
 
     async createTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const newTransaction = this.transactionFactoryService.createNewTransaction(transactionDTO, cartId);
-        return this.dataServices.transactions.create(await newTransaction);
+        return await this.dataServices.transactions.create(await newTransaction);
     }
 
     async updateTransactionStatus(payload: WebhookDTO): Promise<Transaction> {
         const foundTransaction = await this.getTransactionById(payload.transactionId);
         foundTransaction.status = payload.status;
-        return this.dataServices.transactions.update(payload.transactionId, foundTransaction);
+        return await this.dataServices.transactions.update(payload.transactionId, foundTransaction);
     }
 }
