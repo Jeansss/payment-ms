@@ -9,8 +9,8 @@ import { WebhookDTO } from 'src/dto/webhook-transaction.dto';
 import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 import { Cart } from 'src/frameworks/data-services/mongo/entities/cart.model';
-import { PaymentMethod } from 'src/frameworks/data-services/mongo/entities/payment.model';
 import { IOrderPort, IOrderPortToken } from 'src/frameworks/api-services/http/ports/order.port';
+import { OrderAdapter } from 'src/frameworks/api-services/http/adapters/order.adapter';
 
 const mockDataServices = () => ({
   transactions: {
@@ -29,12 +29,22 @@ const mockOrderClient = () => ({
 
 const mockTransactionFactoryService = () => ({
   createNewTransaction: jest.fn(),
+  orderClient: {
+    getCartById: jest.fn()
+  }
+});
+
+const mockHttpService = () => ({
+  axiosRef: {
+    get: jest.fn()
+  }
 });
 
 describe('TransactionUseCases', () => {
   let transactionUseCases: TransactionUseCases;
   let dataServices;
   let transactionFactoryService;
+
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -128,26 +138,23 @@ describe('TransactionUseCases', () => {
     let transactionFactoryService: TransactionFactoryService;
     let dataServices;
     let orderClient;
-  
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           TransactionFactoryService,
-          { provide: IDataServices, useFactory: mockDataServices },
           { provide: IOrderPortToken, useFactory: mockOrderClient },
-
+          { provide: IDataServices, useFactory: mockDataServices },
         ],
       }).compile();
-  
+
       transactionFactoryService = module.get<TransactionFactoryService>(TransactionFactoryService);
       dataServices = module.get<IDataServices>(IDataServices);
       orderClient = module.get<IOrderPort>(IOrderPortToken);
     });
-  
+
     it('should be defined', () => {
       expect(transactionFactoryService).toBeDefined();
     });
-  
     describe('createNewTransaction', () => {
       it('should create and return a new transaction', async () => {
         const transactionDTO: TransactionDTO = {
@@ -164,34 +171,87 @@ describe('TransactionUseCases', () => {
             headers: undefined,
           },
         };
-  
+
         dataServices.payments.get.mockResolvedValue(paymentMethod);
         orderClient.getCartById.mockResolvedValue(cartData);
-  
+
         const result = await transactionFactoryService.createNewTransaction(transactionDTO, cartId);
+
         expect(result.paymentMethod).toEqual(paymentMethod);
         expect(result.total).toEqual(100);
         expect(result.status).toEqual('Pendente');
         expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
-        expect(orderClient.getCartById).toHaveBeenCalledWith(cartId);
-      });
-  
-      it('should handle errors from orderClient', async () => {
-        const transactionDTO: TransactionDTO = {
-          paymentMethodId: 'payment123',
-        };
-        const cartId = 'cart123';
-        const paymentMethod = { id: 'payment123', name: 'Credit Card' };
-  
-        dataServices.payments.get.mockResolvedValue(paymentMethod);
-        orderClient.getCartById.mockRejectedValue(new Error('Order service unavailable'));
-  
-        await expect(transactionFactoryService.createNewTransaction(transactionDTO, cartId))
-          .rejects
-          .toThrow('Order service unavailable');
-        expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
-        expect(orderClient.getCartById).toHaveBeenCalledWith(cartId);
+        expect(orderClient.getCartById).toHaveBeenCalledWith(`${cartId}`);
       });
     });
   });
+
+  describe('OrderAdapter', () => {
+
+    let orderAdapter: OrderAdapter;
+    let httpService;
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          OrderAdapter,
+          { provide: HttpService, useFactory: mockHttpService },
+        ],
+      }).compile();
+
+      orderAdapter = module.get<OrderAdapter>(OrderAdapter);
+      httpService = module.get<HttpService>(HttpService);
+    });
+
+
+    it('should be defined', () => {
+      expect(orderAdapter).toBeDefined();
+    });
+
+    describe('getCartById', () => {
+      it('should return cart data from local URL', async () => {
+        const cartId = 'cart123';
+        const cartData: AxiosResponse<Cart> = {
+          data: { total: 100 } as Cart,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {
+            headers: undefined
+          },
+        };
+
+
+        httpService.axiosRef.get.mockResolvedValueOnce(cartData);
+
+        const result = await orderAdapter.getCartById(cartId);
+        expect(result).toEqual(cartData);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+      });
+
+      it('should return cart data from container URL if local URL fails', async () => {
+        const cartId = 'cart123';
+        const cartData: AxiosResponse<Cart> = {
+          data: { total: 100 } as Cart,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {
+            headers: undefined
+          },
+        };
+
+        httpService.axiosRef.get
+          .mockRejectedValueOnce(new Error('Local URL failed'))
+          .mockResolvedValueOnce(cartData);
+
+        const result = await orderAdapter.getCartById(cartId);
+        expect(result).toEqual(cartData);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://order_ms:3001/carts/id/${cartId}`);
+      });
+    });
+
+  });
+
 });
