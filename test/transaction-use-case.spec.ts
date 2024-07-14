@@ -6,10 +6,9 @@ import { TransactionFactoryService } from 'src/use-cases/transaction/transaction
 import { Transaction } from 'src/frameworks/data-services/mongo/entities/transaction.model';
 import { TransactionDTO } from 'src/dto/transaction.dto';
 import { WebhookDTO } from 'src/dto/webhook-transaction.dto';
-import { HttpModule, HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 import { Cart } from 'src/frameworks/data-services/mongo/entities/cart.model';
-import { PaymentMethod } from 'src/frameworks/data-services/mongo/entities/payment.model';
 import { IOrderPort, IOrderPortToken } from 'src/frameworks/api-services/http/ports/order.port';
 import { OrderAdapter } from 'src/frameworks/api-services/http/adapters/order.adapter';
 
@@ -24,12 +23,6 @@ const mockDataServices = () => ({
   },
 });
 
-const mockHttpService = () => ({
-  axiosRef: {
-    get: jest.fn(),
-  },
-});
-
 const mockOrderClient = () => ({
   getCartById: jest.fn(),
 });
@@ -38,6 +31,12 @@ const mockTransactionFactoryService = () => ({
   createNewTransaction: jest.fn(),
   orderClient: {
     getCartById: jest.fn()
+  }
+});
+
+const mockHttpService = () => ({
+  axiosRef: {
+    get: jest.fn()
   }
 });
 
@@ -139,7 +138,6 @@ describe('TransactionUseCases', () => {
     let transactionFactoryService: TransactionFactoryService;
     let dataServices;
     let orderClient;
-
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -157,19 +155,20 @@ describe('TransactionUseCases', () => {
     it('should be defined', () => {
       expect(transactionFactoryService).toBeDefined();
     });
-
     describe('createNewTransaction', () => {
       it('should create and return a new transaction', async () => {
-        const transactionDTO: TransactionDTO = { paymentMethodId: 'payment123' };
+        const transactionDTO: TransactionDTO = {
+          paymentMethodId: 'payment123',
+        };
         const cartId = 'cart123';
-        const paymentMethod = { name: 'Credit Card', description: 'Visa' } as PaymentMethod;
+        const paymentMethod = { id: 'payment123', name: 'Credit Card' };
         const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
+          data: { total: 100, } as Cart,
           status: 200,
           statusText: 'OK',
           headers: {},
           config: {
-            headers: undefined
+            headers: undefined,
           },
         };
 
@@ -179,7 +178,7 @@ describe('TransactionUseCases', () => {
         const result = await transactionFactoryService.createNewTransaction(transactionDTO, cartId);
 
         expect(result.paymentMethod).toEqual(paymentMethod);
-        expect(result.total).toEqual(cartData.data.total);
+        expect(result.total).toEqual(100);
         expect(result.status).toEqual('Pendente');
         expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
         expect(orderClient.getCartById).toHaveBeenCalledWith(`${cartId}`);
