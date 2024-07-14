@@ -1,33 +1,21 @@
-import { HttpService } from "@nestjs/axios";
-import { Injectable } from "@nestjs/common";
-import { AxiosResponse } from "axios";
+import { Inject, Injectable } from "@nestjs/common";
 import { IDataServices } from "src/core/abstracts/data-services.abstract";
 import { TransactionDTO } from "src/dto/transaction.dto";
-import { Cart } from "src/frameworks/data-services/mongo/entities/cart.model";
+import { IOrderPort, IOrderPortToken } from "src/frameworks/api-services/http/ports/order.port";
 import { Transaction } from "src/frameworks/data-services/mongo/entities/transaction.model";
 
 @Injectable()
 export class TransactionFactoryService {
-    constructor(private dataServices: IDataServices, private readonly httpService: HttpService) {}
 
-    getExternalCart(cartId: string): Promise<AxiosResponse<Cart>> {
-        const localURL = `http://0.0.0.0:3001/carts/id/${cartId}`;
-        const containerURL = `http://cart_ms:3001/carts/id/${cartId}`;
-
-        return this.httpService.
-            axiosRef.get(localURL)
-            .catch(() => {
-                return this.httpService.
-                    axiosRef.get(containerURL)
-            });
-    }
+    constructor(private dataServices: IDataServices, @Inject(IOrderPortToken) private orderClient: IOrderPort) { }
 
     async createNewTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const foundPaymentMethod = await this.dataServices.payments.get(transactionDTO.paymentMethodId);
-        const foundCart = await this.getExternalCart(cartId);
+        const orderClientResponse = await this.orderClient.getCartById(cartId);
+        const foundCart = orderClientResponse.data;
         const transaction = new Transaction();
         transaction.paymentMethod = foundPaymentMethod;
-        transaction.total = foundCart.data.total;
+        transaction.total = foundCart.total;
         transaction.status = 'Pendente';
         return transaction;
     }
