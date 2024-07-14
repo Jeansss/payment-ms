@@ -2,7 +2,9 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { IOrderPort } from "../ports/order.port";
 import { Cart } from "src/frameworks/data-services/mongo/entities/cart.model";
+import { Injectable } from "@nestjs/common";
 
+@Injectable()
 export class OrderAdapter implements IOrderPort {
 
     constructor(private readonly httpService: HttpService) { }

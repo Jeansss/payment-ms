@@ -6,10 +6,12 @@ import { TransactionFactoryService } from 'src/use-cases/transaction/transaction
 import { Transaction } from 'src/frameworks/data-services/mongo/entities/transaction.model';
 import { TransactionDTO } from 'src/dto/transaction.dto';
 import { WebhookDTO } from 'src/dto/webhook-transaction.dto';
-import { HttpService } from '@nestjs/axios';
+import { HttpModule, HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 import { Cart } from 'src/frameworks/data-services/mongo/entities/cart.model';
 import { PaymentMethod } from 'src/frameworks/data-services/mongo/entities/payment.model';
+import { IOrderPort, IOrderPortToken } from 'src/frameworks/api-services/http/ports/order.port';
+import { OrderAdapter } from 'src/frameworks/api-services/http/adapters/order.adapter';
 
 const mockDataServices = () => ({
   transactions: {
@@ -28,14 +30,22 @@ const mockHttpService = () => ({
   },
 });
 
+const mockOrderClient = () => ({
+  getCartById: jest.fn(),
+});
+
 const mockTransactionFactoryService = () => ({
   createNewTransaction: jest.fn(),
+  orderClient: {
+    getCartById: jest.fn()
+  }
 });
 
 describe('TransactionUseCases', () => {
   let transactionUseCases: TransactionUseCases;
   let dataServices;
   let transactionFactoryService;
+
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -128,69 +138,26 @@ describe('TransactionUseCases', () => {
   describe('TransactionFactoryService', () => {
     let transactionFactoryService: TransactionFactoryService;
     let dataServices;
-    let httpService;
-  
+    let orderClient;
+
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           TransactionFactoryService,
+          { provide: IOrderPortToken, useFactory: mockOrderClient },
           { provide: IDataServices, useFactory: mockDataServices },
-          { provide: HttpService, useFactory: mockHttpService },
         ],
       }).compile();
-  
+
       transactionFactoryService = module.get<TransactionFactoryService>(TransactionFactoryService);
       dataServices = module.get<IDataServices>(IDataServices);
-      httpService = module.get<HttpService>(HttpService);
+      orderClient = module.get<IOrderPort>(IOrderPortToken);
     });
-  
+
     it('should be defined', () => {
       expect(transactionFactoryService).toBeDefined();
     });
-  
-    describe('getExternalCart', () => {
-      it('should return cart data from local URL', async () => {
-        const cartId = 'cart123';
-        const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {
-            headers: undefined
-          },
-        };
-  
-        httpService.axiosRef.get.mockResolvedValueOnce(cartData);
-  
-        const result = await transactionFactoryService.getExternalCart(cartId);
-        expect(result).toEqual(cartData);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
-      });
-  
-      it('should return cart data from container URL if local URL fails', async () => {
-        const cartId = 'cart123';
-        const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {
-            headers: undefined
-          },
-        };
-  
-        httpService.axiosRef.get
-          .mockRejectedValueOnce(new Error('Local URL failed'))
-          .mockResolvedValueOnce(cartData);
-  
-        const result = await transactionFactoryService.getExternalCart(cartId);
-        expect(result).toEqual(cartData);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://cart_ms:3001/carts/id/${cartId}`);
-      });
-    });
-  
+
     describe('createNewTransaction', () => {
       it('should create and return a new transaction', async () => {
         const transactionDTO: TransactionDTO = { paymentMethodId: 'payment123' };
@@ -205,19 +172,87 @@ describe('TransactionUseCases', () => {
             headers: undefined
           },
         };
-  
+
         dataServices.payments.get.mockResolvedValue(paymentMethod);
-        httpService.axiosRef.get.mockResolvedValue(cartData);
-  
+        orderClient.getCartById.mockResolvedValue(cartData);
+
         const result = await transactionFactoryService.createNewTransaction(transactionDTO, cartId);
-  
+
         expect(result.paymentMethod).toEqual(paymentMethod);
         expect(result.total).toEqual(cartData.data.total);
         expect(result.status).toEqual('Pendente');
         expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+        expect(orderClient.getCartById).toHaveBeenCalledWith(`${cartId}`);
       });
     });
+  });
+
+  describe('OrderAdapter', () => {
+
+    let orderAdapter: OrderAdapter;
+    let httpService;
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          OrderAdapter,
+          { provide: HttpService, useFactory: mockHttpService },
+        ],
+      }).compile();
+
+      orderAdapter = module.get<OrderAdapter>(OrderAdapter);
+      httpService = module.get<HttpService>(HttpService);
+    });
+
+
+    it('should be defined', () => {
+      expect(orderAdapter).toBeDefined();
+    });
+
+    describe('getCartById', () => {
+      it('should return cart data from local URL', async () => {
+        const cartId = 'cart123';
+        const cartData: AxiosResponse<Cart> = {
+          data: { total: 100 } as Cart,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {
+            headers: undefined
+          },
+        };
+
+
+        httpService.axiosRef.get.mockResolvedValueOnce(cartData);
+
+        const result = await orderAdapter.getCartById(cartId);
+        expect(result).toEqual(cartData);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+      });
+
+      it('should return cart data from container URL if local URL fails', async () => {
+        const cartId = 'cart123';
+        const cartData: AxiosResponse<Cart> = {
+          data: { total: 100 } as Cart,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: {
+            headers: undefined
+          },
+        };
+
+        httpService.axiosRef.get
+          .mockRejectedValueOnce(new Error('Local URL failed'))
+          .mockResolvedValueOnce(cartData);
+
+        const result = await orderAdapter.getCartById(cartId);
+        expect(result).toEqual(cartData);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://order_ms:3001/carts/id/${cartId}`);
+      });
+    });
+
   });
 
 });
