@@ -10,6 +10,7 @@ import { HttpService } from '@nestjs/axios';
 import { AxiosResponse } from 'axios';
 import { Cart } from 'src/frameworks/data-services/mongo/entities/cart.model';
 import { PaymentMethod } from 'src/frameworks/data-services/mongo/entities/payment.model';
+import { IOrderPort, IOrderPortToken } from 'src/frameworks/api-services/http/ports/order.port';
 
 const mockDataServices = () => ({
   transactions: {
@@ -22,10 +23,8 @@ const mockDataServices = () => ({
   },
 });
 
-const mockHttpService = () => ({
-  axiosRef: {
-    get: jest.fn(),
-  },
+const mockOrderClient = () => ({
+  getCartById: jest.fn(),
 });
 
 const mockTransactionFactoryService = () => ({
@@ -128,96 +127,71 @@ describe('TransactionUseCases', () => {
   describe('TransactionFactoryService', () => {
     let transactionFactoryService: TransactionFactoryService;
     let dataServices;
-    let httpService;
+    let orderClient;
   
     beforeEach(async () => {
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           TransactionFactoryService,
           { provide: IDataServices, useFactory: mockDataServices },
-          { provide: HttpService, useFactory: mockHttpService },
+          { provide: IOrderPortToken, useFactory: mockOrderClient },
+
         ],
       }).compile();
   
       transactionFactoryService = module.get<TransactionFactoryService>(TransactionFactoryService);
       dataServices = module.get<IDataServices>(IDataServices);
-      httpService = module.get<HttpService>(HttpService);
+      orderClient = module.get<IOrderPort>(IOrderPortToken);
     });
   
     it('should be defined', () => {
       expect(transactionFactoryService).toBeDefined();
     });
   
-    describe('getExternalCart', () => {
-      it('should return cart data from local URL', async () => {
-        const cartId = 'cart123';
-        const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {
-            headers: undefined
-          },
-        };
-  
-        httpService.axiosRef.get.mockResolvedValueOnce(cartData);
-  
-        const result = await transactionFactoryService.getExternalCart(cartId);
-        expect(result).toEqual(cartData);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
-      });
-  
-      it('should return cart data from container URL if local URL fails', async () => {
-        const cartId = 'cart123';
-        const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {
-            headers: undefined
-          },
-        };
-  
-        httpService.axiosRef.get
-          .mockRejectedValueOnce(new Error('Local URL failed'))
-          .mockResolvedValueOnce(cartData);
-  
-        const result = await transactionFactoryService.getExternalCart(cartId);
-        expect(result).toEqual(cartData);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://cart_ms:3001/carts/id/${cartId}`);
-      });
-    });
-  
     describe('createNewTransaction', () => {
       it('should create and return a new transaction', async () => {
-        const transactionDTO: TransactionDTO = { paymentMethodId: 'payment123' };
+        const transactionDTO: TransactionDTO = {
+          paymentMethodId: 'payment123',
+        };
         const cartId = 'cart123';
-        const paymentMethod = { name: 'Credit Card', description: 'Visa' } as PaymentMethod;
+        const paymentMethod = { id: 'payment123', name: 'Credit Card' };
         const cartData: AxiosResponse<Cart> = {
-          data: { total: 100 } as Cart,
+          data: { total: 100, } as Cart,
           status: 200,
           statusText: 'OK',
           headers: {},
           config: {
-            headers: undefined
+            headers: undefined,
           },
         };
   
         dataServices.payments.get.mockResolvedValue(paymentMethod);
-        httpService.axiosRef.get.mockResolvedValue(cartData);
+        orderClient.getCartById.mockResolvedValue(cartData);
   
         const result = await transactionFactoryService.createNewTransaction(transactionDTO, cartId);
-  
         expect(result.paymentMethod).toEqual(paymentMethod);
-        expect(result.total).toEqual(cartData.data.total);
+        expect(result.total).toEqual(100);
         expect(result.status).toEqual('Pendente');
         expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
+        expect(orderClient.getCartById).toHaveBeenCalledWith(cartId);
+      });
+  
+      it('should handle errors from orderClient', async () => {
+        const transactionDTO: TransactionDTO = {
+          paymentMethodId: 'payment123',
+        };
+        const cartId = 'cart123';
+        const paymentMethod = { id: 'payment123', name: 'Credit Card' };
+  
+        dataServices.payments.get.mockResolvedValue(paymentMethod);
+        orderClient.getCartById.mockRejectedValue(new Error('Order service unavailable'));
+  
+        await expect(transactionFactoryService.createNewTransaction(transactionDTO, cartId))
+          .rejects
+          .toThrow('Order service unavailable');
+        expect(dataServices.payments.get).toHaveBeenCalledWith(transactionDTO.paymentMethodId);
+        expect(orderClient.getCartById).toHaveBeenCalledWith(cartId);
       });
     });
   });
-
 });
