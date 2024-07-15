@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: order-manager-config
 data:
-  MONGO_CONNECTION_STRING: mongodb+srv://user-1:6tJyVvy1C12CzFcY@order-manager-environme.xuekaho.mongodb.net/order-manager?retryWrites=true&w=majority&appName=order-manager-environment-cluster
+  MONGO_CONNECTION_STRING: mongodb+srv://user-1:bg7YB8diWUk5QnG0@cluster0.ivyqtxs.mongodb.net/payment?retryWrites=true&w=majority&appName=Cluster0
