@@ -74,13 +74,14 @@ jobs:
     - name: Build the Docker image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        REGISTRY_NAME: payment-ms
+        REGISTRY_NAME: order-manager
+        IMAGE_NAME: payment-ms
         IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t $REGISTRY_NAME:$IMAGE_TAG -t $REGISTRY_NAME:latest . --no-cache
-        docker tag $REGISTRY_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:$IMAGE_TAG >> $GITHUB_OUTPUT
-        docker tag $REGISTRY_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:latest >> $GITHUB_OUTPUT
-        docker push $ECR_REGISTRY/$REGISTRY_NAME --all-tags
+        docker build -t $IMAGE_NAME:$IMAGE_TAG -t $IMAGE_NAME:latest . --no-cache
+        docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:$IMAGE_TAG >> $GITHUB_OUTPUT
+        docker tag $IMAGE_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:latest >> $GITHUB_OUTPUT
+        docker push $ECR_REGISTRY/$IMAGE_NAME --all-tags
 
     - name: Update kube config
       env:
