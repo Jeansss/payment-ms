@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: order-manager
+  name: payment-ms
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: order-manager
+      app: payment-ms
   template:
     metadata:
       labels:
-        app: order-manager
+        app: payment-ms
     spec:
       containers:
-      - name: order-manager
-        image: 975050002971.dkr.ecr.us-east-1.amazonaws.com/order-manager:latest
+      - name: payment-ms
+        image: 975050002971.dkr.ecr.us-east-1.amazonaws.com/payment-ms:latest
         ports:
         - containerPort: 3003
         livenessProbe:
@@ -36,18 +36,18 @@ spec:
           - name: MONGO_CONNECTION_STRING
             valueFrom:
               configMapKeyRef:
-                name: order-manager-config
+                name: payment-ms-config
                 key: MONGO_CONNECTION_STRING
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: svc-order-manager
+  name: svc-payment-ms
 spec:
   type: LoadBalancer
   selector:
-    app: order-manager
+    app: payment-ms
   ports:
     - protocol: TCP
       port: 80
