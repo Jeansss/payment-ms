@@ -247,8 +247,7 @@ describe('TransactionUseCases', () => {
 
         const result = await orderAdapter.getCartById(cartId);
         expect(result).toEqual(cartData);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://0.0.0.0:3001/carts/id/${cartId}`);
-        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://order_ms:3001/carts/id/${cartId}`);
+        expect(httpService.axiosRef.get).toHaveBeenCalledWith(`http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`);
       });
     });
 

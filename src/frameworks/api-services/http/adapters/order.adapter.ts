@@ -10,8 +10,6 @@ export class OrderAdapter implements IOrderPort {
     constructor(private readonly httpService: HttpService) { }
 
     getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
-        // const localURL = `http://0.0.0.0:3001/carts/id/${cartId}`;
-        // const containerURL = `http://order_ms:3001/carts/id/${cartId}`;
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
 
         return this.httpService.
@@ -19,8 +17,6 @@ export class OrderAdapter implements IOrderPort {
     }
 
     addTransactionToCart(cartId: string, transactionId: string): Promise<AxiosResponse> {
-        // const localURL = `http://0.0.0.0:3001/carts/${cartId}/transactions/${transactionId}`;
-        // const containerURL = `http://order_ms:3001/carts/${cartId}/transactions/${transactionId}`;
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/${cartId}/transactions/${transactionId}`
 
         return this.httpService.
