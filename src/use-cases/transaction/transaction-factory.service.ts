@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { IDataServices } from "src/core/abstracts/data-services.abstract";
 import { TransactionDTO } from "src/dto/transaction.dto";
 import { IOrderPort, IOrderPortToken } from "src/frameworks/api-services/http/ports/order.port";
@@ -12,7 +12,8 @@ export class TransactionFactoryService {
     async createNewTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const foundPaymentMethod = await this.dataServices.payments.get(transactionDTO.paymentMethodId);
         const orderClientResponse = await this.orderClient.getCartById(cartId);
-        const foundCart = orderClientResponse;
+        Logger.log(`OrderClientResponse aqui: ${orderClientResponse}`);
+        const foundCart = orderClientResponse.data;
         const transaction = new Transaction();
         transaction.paymentMethod = foundPaymentMethod;
         transaction.total = foundCart.total;

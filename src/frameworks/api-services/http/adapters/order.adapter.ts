@@ -9,7 +9,7 @@ export class OrderAdapter implements IOrderPort {
 
     constructor(private readonly httpService: HttpService) { }
 
-    getCartById(cartId: string): Promise<Cart> {
+    getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
         Logger.log(`la vai request to ${finalUrl}`);
         Logger.log(`ultima imagem ${cartId}`);
@@ -21,14 +21,14 @@ export class OrderAdapter implements IOrderPort {
 
 
 
-        return this.httpService.axiosRef.get<Cart>(finalUrl, {
+        return this.httpService.axiosRef.get(finalUrl, {
             headers: { 'Content-Type': 'application/json' },
             proxy: false
         })
         .then((response) => {
             Logger.log(`Response from ${finalUrl}`);
             Logger.log(response.data);
-            return response.data; // Retornando apenas o corpo da resposta
+            return response;
         })
         .catch((error) => {
             Logger.error(`Error from ${finalUrl}`);
@@ -38,8 +38,8 @@ export class OrderAdapter implements IOrderPort {
             } else {
                 Logger.error(`Error message: ${error.message}`);
             }
-            throw new Error('Failed to fetch cart');
-        });
+            return null;
+    });
 
     }
 
