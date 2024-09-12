@@ -1,0 +1,157 @@
+name: SonarCloud Analysis, Build application and deploy
+
+on:
+  push:
+    branches:
+      - feature/sqs
+  pull_request:
+    branches:
+      - master
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  sonarQube:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.16.1'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+    #   - name: Run tests
+    #     run: npm test -- --coverage
+
+    #   - name: SonarCloud Scan
+    #     uses: SonarSource/sonarcloud-github-action@master
+    #     env:
+    #       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    #     with:
+    #       args: >
+    #         -Dsonar.projectKey=YuriCordeiro_payment-ms
+    #         -Dsonar.organization=yuricordeiro
+    #         -Dsonar.sources=./src
+    #         -Dsonar.tests=./test
+    #         -Dsonar.test.inclusions="**/*.spec.ts"
+    #         -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info
+    #         -Dsonar.exclusions=src/main.ts,src/**/*.module.ts,src/core/abstracts/generic-repository.abstract.ts,src/frameworks/data-services/mongo/mongo-data-services.service.ts,src/frameworks/data-services/mongo/entities/payment.model.ts,src/use-cases/payment/payment-factory.service.ts,src/controllers/app.controller.ts
+            
+  build:
+    name: "Build and Push Docker Image to Amazon ECR"
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: "us-east-1"
+
+    steps:    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@0e613a0980cbf65ed5b322eb7a1e075d28913a83
+      with:
+        aws-access-key-id: ${{ secrets.SQS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.SQS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    # - name: Create Mongo Secret
+    #   run: |
+    #       kubectl create secret generic mongo-credentials \
+    #         --from-literal=MONGO_CONNECTION_STRING=${{ secrets.MONGO_CONNECTION_STRING }} \
+    #         -n nginx \
+    #         --dry-run=client -o yaml | kubectl apply -f k8s/cloud/ --insecure-skip-tls-verify --validate=false
+    #         # --dry-run=client -o yaml | kubectl apply -f - --insecure-skip-tls-verify --validate=false
+
+    # - name: Create SQS Secret
+    #   run: |
+    #       kubectl create secret generic sqs-credentials \
+    #         --from-literal=SQS_ACCESS_KEY_ID=${{ secrets.SQS_ACCESS_KEY_ID }} \
+    #         --from-literal=SQS_SECRET_ACCESS_KEY=${{ secrets.SQS_SECRET_ACCESS_KEY }} \
+    #         -n nginx \
+    #         --dry-run=client -o yaml | kubectl apply -f k8s/cloud/ --insecure-skip-tls-verify --validate=false
+    #         # --dry-run=client -o yaml | kubectl apply -f - --insecure-skip-tls-verify --validate=false
+
+    - name: Amazon ECR "Login" Action for GitHub Actions
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+      with:
+        # A comma-delimited list of AWS account IDs that are associated with the ECR Private registries. If you do not specify a registry, the default ECR Private registry is assumed. If 'public' is given as input to 'registry-type', this input is ignored.
+        registries: "975050002971"
+        # Which ECR registry type to log into. Options: [private, public]
+        registry-type: private
+        # Whether to skip explicit logout of the registries during post-job cleanup. Exists for backward compatibility on self-hosted runners. Not recommended. Options: ['true', 'false']      
+
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        REGISTRY_NAME: payment-ms
+        IMAGE_TAG: ${{ github.sha }}
+      run: |
+        docker build -t $REGISTRY_NAME:$IMAGE_TAG -t $REGISTRY_NAME:latest . --no-cache
+        docker tag $REGISTRY_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:$IMAGE_TAG >> $GITHUB_OUTPUT
+        docker tag $REGISTRY_NAME:latest $ECR_REGISTRY/$REGISTRY_NAME:latest >> $GITHUB_OUTPUT
+        docker push $ECR_REGISTRY/$REGISTRY_NAME --all-tags
+    - name: Update kube config
+      env:
+        EKS_CLUSTER_NAME: 'payment-manager'
+      run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region ${{ env.AWS_REGION }}
+
+    # - name: Set k8s context
+    #   uses: azure/k8s-set-context@v4
+    #   with:
+    #      method: service-account
+    #      k8s-url: 'https://5FC85553693A9FB969B879E43B276ECA.gr7.us-east-1.eks.amazonaws.com'
+    #      k8s-secret: ${{ secrets.SQS_SECRET_ACCESS_KEY }}
+
+    # - name: Create SQS Access Key Id
+    #   uses: Azure/k8s-create-secret@v4.0
+    #   with:
+    #     # Choose the target Kubernetes namespace. If the namespace is not provided, the commands will run in the default namespace.
+    #     namespace: 'default'
+    #     # Type of Kubernetes secret. Defaults to 'kubernetes.io/dockerconfigjson'.
+    #     secret-type: 'generic'
+    #     # Name of the secret. You can use this secret name in the Kubernetes YAML configuration file.
+    #     secret-name: SQS_ACCESS_KEY_ID
+    #     # JSON object with the serialized form of the secret data in a base64 encoded string ex: {"key1":"[base64 encoded data]"}
+    #     data: ${{ secrets.SQS_ACCESS_KEY_ID }}
+
+    # - name: Create SQS Secret Access Key
+    #   uses: Azure/k8s-create-secret@v4.0
+    #   with:
+    #     # Choose the target Kubernetes namespace. If the namespace is not provided, the commands will run in the default namespace.
+    #     namespace: 'default'
+    #     # Type of Kubernetes secret. Defaults to 'kubernetes.io/dockerconfigjson'.
+    #     secret-type: 'generic'
+    #     # Name of the secret. You can use this secret name in the Kubernetes YAML configuration file.
+    #     secret-name: SQS_SECRET_ACCESS_KEY
+    #     # JSON object with the serialized form of the secret data in a base64 encoded string ex: {"key1":"[base64 encoded data]"}
+    #     data: ${{ secrets.SQS_SECRET_ACCESS_KEY }}
+
+    # - name: Create Mongo Credentials Secret
+    #   uses: Azure/k8s-create-secret@v4.0
+    #   with:
+    #     # Choose the target Kubernetes namespace. If the namespace is not provided, the commands will run in the default namespace.
+    #     namespace: 'default'
+    #     # Type of Kubernetes secret. Defaults to 'kubernetes.io/dockerconfigjson'.
+    #     secret-type: 'generic'
+    #     # Name of the secret. You can use this secret name in the Kubernetes YAML configuration file.
+    #     secret-name: MONGO_CONNECTION_STRING
+    #     # JSON object with the serialized form of the secret data in a base64 encoded string ex: {"key1":"[base64 encoded data]"}
+    #     data: ${{ secrets.MONGO_CONNECTION_STRING }}
+
+    - name: Deploy to EKS
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        MONGO_CONNECTION_STRING: ${{ secrets.MONGO_CONNECTION_STRING }}
+        SQS_SECRET_ACCESS_KEY: ${{ secrets.SQS_SECRET_ACCESS_KEY }}
+        SQS_ACCESS_KEY_ID: ${{ secrets.SQS_ACCESS_KEY_ID }}
+        AWS_REGION: "us-east-1"
+        SQS_URL: "https://sqs.us-east-1.amazonaws.com/975050002971/CHARGE_EVENTS"
+      run: |
+        kubectl apply -f k8s/cloud/
+        kubectl set env deployment/payment-ms MONGO_CONNECTION_STRING=$MONGO_CONNECTION_STRING SQS_SECRET_ACCESS_KEY=$SQS_SECRET_ACCESS_KEY SQS_ACCESS_KEY_ID=$SQS_ACCESS_KEY_ID AWS_REGION=$AWS_REGION SQS_URL=$SQS_URL
