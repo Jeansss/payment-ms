@@ -9,7 +9,7 @@ export class OrderAdapter implements IOrderPort {
 
     constructor(private readonly httpService: HttpService) { }
 
-    getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
+    getCartById(cartId: string): Promise<Cart> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
         Logger.log(`la vai request to ${finalUrl}`);
         Logger.log(`ultima imagem ${cartId}`);
@@ -21,19 +21,24 @@ export class OrderAdapter implements IOrderPort {
 
 
 
-        return this.httpService.axiosRef.get(finalUrl, {
+        return this.httpService.axiosRef.get<Cart>(finalUrl, {
             headers: { 'Content-Type': 'application/json' },
             proxy: false
         })
         .then((response) => {
             Logger.log(`Response from ${finalUrl}`);
             Logger.log(response.data);
-            return response;
+            return response.data; // Retornando apenas o corpo da resposta
         })
         .catch((error) => {
             Logger.error(`Error from ${finalUrl}`);
-            Logger.error(error.response ? error.response.data : error.message); // Log do erro mais detalhado
-            throw new Error('Failed to fetch cart'); // Lance o erro para ser tratado corretamente
+            if (error.response) {
+                Logger.error(`Error status: ${error.response.status}`);
+                Logger.error(`Error data: ${JSON.stringify(error.response.data)}`);
+            } else {
+                Logger.error(`Error message: ${error.message}`);
+            }
+            throw new Error('Failed to fetch cart');
         });
 
     }

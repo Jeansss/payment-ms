@@ -12,7 +12,7 @@ export class TransactionFactoryService {
     async createNewTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const foundPaymentMethod = await this.dataServices.payments.get(transactionDTO.paymentMethodId);
         const orderClientResponse = await this.orderClient.getCartById(cartId);
-        const foundCart = orderClientResponse.data;
+        const foundCart = orderClientResponse;
         const transaction = new Transaction();
         transaction.paymentMethod = foundPaymentMethod;
         transaction.total = foundCart.total;
