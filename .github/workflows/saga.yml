@@ -99,7 +99,7 @@ jobs:
         docker push $ECR_REGISTRY/$REGISTRY_NAME --all-tags
     - name: Update kube config
       env:
-        EKS_CLUSTER_NAME: 'payment-manager'
+        EKS_CLUSTER_NAME: 'order-manager'
       run: aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region ${{ env.AWS_REGION }}
 
     # - name: Set k8s context
