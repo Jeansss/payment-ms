@@ -1,0 +1,30 @@
+version: '3'
+services:
+  order_manager:
+    build: .
+    container_name: order_manager
+    image: order_manager
+    ports:
+      - 3003:3003
+    environment:
+      - MONGO_CONNECTION_STRING=mongodb://mongodb/payment
+    depends_on:
+      - mongodb
+
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    command: mongod
+    ports:
+      - "0.0.0.0:27017:27017"
+    environment:
+      - AUTH=yes
+      - MONGODB_INITDB_ROOT_USERNAME=admin
+      - MONGODB_INITDB_ROOT_PASSWORD=admin
+      - MONGODB_INITDB_DATABASE=order-manager
+    volumes:
+      - ${MONGO_HOST_DATA}/db_order-manager:/data/db
+
+
+volumes:
+  mongodb_server_data:

@@ -5,6 +5,7 @@ export type TransactionDocument = Transaction & Document;
 
 @Schema()
 export class Transaction {
+  id: string;
   @Prop({ type: PaymentMethodSchema })
   paymentMethod: PaymentMethod;
   @Prop()

@@ -19,4 +19,8 @@ export class TransactionFactoryService {
         transaction.status = 'Pendente';
         return transaction;
     }
+
+    getOrderClient() {
+        return this.orderClient;
+    }
 }
