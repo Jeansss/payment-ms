@@ -12,7 +12,7 @@ export class OrderAdapter implements IOrderPort {
     getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
         Logger.log(`la vai request to ${finalUrl}`);
-        Logger.log(`la vai request to ${cartId}`);
+        Logger.log(`ultima imagem ${cartId}`);
         Logger.log(`...`);
         Logger.log(`...`);
         Logger.log(`...`);
@@ -21,20 +21,25 @@ export class OrderAdapter implements IOrderPort {
 
 
 
-        return this.httpService.axiosRef.get(finalUrl,
-            { headers: { 'Content-Type': 'application/json' }, proxy: false }
-        ).then((response) => {
-            Logger.log(`response from ${finalUrl}`);
+        return this.httpService.axiosRef.get(finalUrl, {
+            headers: { 'Content-Type': 'application/json' },
+            proxy: false
+        })
+        .then((response) => {
+            Logger.log(`Response from ${finalUrl}`);
             Logger.log(response.data);
             return response;
-        }).catch((error) => {
-            Logger.error(`error from ${finalUrl}`);
-            Logger.error(error);
-            return error;
+        })
+        .catch((error) => {
+            Logger.error(`Error from ${finalUrl}`);
+            Logger.error(error.response ? error.response.data : error.message); // Log do erro mais detalhado
+            throw new Error('Failed to fetch cart'); // Lance o erro para ser tratado corretamente
         });
 
     }
 
+
+    
     addTransactionToCart(cartId: string, transactionId: string): Promise<AxiosResponse> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/${cartId}/transactions/${transactionId}`
 
