@@ -12,11 +12,16 @@ export class TransactionFactoryService {
     async createNewTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const foundPaymentMethod = await this.dataServices.payments.get(transactionDTO.paymentMethodId);
         const orderClientResponse = await this.orderClient.getCartById(cartId);
-        Logger.log(`OrderClientResponse aqui: ${orderClientResponse}`);
+        Logger.log(`OrderClientResponse aqui 1: ${orderClientResponse}`);
         const foundCart = orderClientResponse.data;
+        Logger.log(`OrderClientResponse aqui 2: ${orderClientResponse}`);
         const transaction = new Transaction();
+        Logger.log(`OrderClientResponse aqui 3: ${orderClientResponse}`);
         transaction.paymentMethod = foundPaymentMethod;
+        Logger.log(`OrderClientResponse aqui 4: ${orderClientResponse}`);
         transaction.total = foundCart.total;
+        Logger.log(`OrderClientResponse aqui 5: ${orderClientResponse}`);
+        Logger.log(`OrderClientResponse aqui 6: ${orderClientResponse.data}`);
         transaction.status = 'Pendente';
         return transaction;
     }

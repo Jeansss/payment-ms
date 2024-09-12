@@ -33,8 +33,14 @@ export class TransactionUseCases {
 
     async createTransaction(transactionDTO: TransactionDTO, cartId: string): Promise<Transaction> {
         const newTransaction = this.transactionFactoryService.createNewTransaction(transactionDTO, cartId);
+        Logger.log(`OrderClientResponse aqui 7:`);
+
         const createdTransaction = await this.dataServices.transactions.create(await newTransaction);
+        Logger.log(`OrderClientResponse aqui 8:`);
+
         await this.transactionFactoryService.getOrderClient().addTransactionToCart(cartId, createdTransaction.id); // update cart entity
+        Logger.log(`OrderClientResponse aqui 9:`);
+
         return createdTransaction;
     }
 
