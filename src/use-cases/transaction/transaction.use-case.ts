@@ -36,7 +36,8 @@ export class TransactionUseCases {
         Logger.log(`OrderClientResponse aqui 7:`);
 
         const createdTransaction = await this.dataServices.transactions.create(await newTransaction);
-        Logger.log(`OrderClientResponse aqui 8:`);
+        Logger.log(`OrderClientResponse aqui 8: ${createdTransaction}`);
+
 
         await this.transactionFactoryService.getOrderClient().addTransactionToCart(cartId, createdTransaction.id); // update cart entity
         Logger.log(`OrderClientResponse aqui 9:`);
