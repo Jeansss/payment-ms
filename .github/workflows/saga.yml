@@ -90,7 +90,7 @@ jobs:
     - name: Build the Docker image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        REGISTRY_NAME: payment-ms
+        REGISTRY_NAME: order-manager
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker build -t $REGISTRY_NAME:$IMAGE_TAG -t $REGISTRY_NAME:latest . --no-cache
