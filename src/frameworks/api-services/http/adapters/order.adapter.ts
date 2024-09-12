@@ -12,17 +12,15 @@ export class OrderAdapter implements IOrderPort {
     getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
 
-        Logger.log(`GET request to ${finalUrl}`);
-        return this.httpService.
-            axiosRef.get(finalUrl);
+        return this.httpService.axiosRef.get(finalUrl, { timeout: 8000 });
+
     }
 
     addTransactionToCart(cartId: string, transactionId: string): Promise<AxiosResponse> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/${cartId}/transactions/${transactionId}`
 
-        Logger.log(`PUT request to ${finalUrl}`);
         return this.httpService.
-            axiosRef.put(finalUrl);
+            axiosRef.put(finalUrl, { timeout: 8000 });
     }
 
 }
