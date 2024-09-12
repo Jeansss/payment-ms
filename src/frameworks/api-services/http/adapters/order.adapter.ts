@@ -2,7 +2,7 @@ import { HttpService } from "@nestjs/axios";
 import { AxiosResponse } from "axios";
 import { IOrderPort } from "../ports/order.port";
 import { Cart } from "src/frameworks/data-services/mongo/entities/cart.model";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 
 @Injectable()
 export class OrderAdapter implements IOrderPort {
@@ -12,6 +12,7 @@ export class OrderAdapter implements IOrderPort {
     getCartById(cartId: string): Promise<AxiosResponse<Cart>> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/id/${cartId}`;
 
+        Logger.log(`GET request to ${finalUrl}`);
         return this.httpService.
             axiosRef.get(finalUrl);
     }
@@ -19,6 +20,7 @@ export class OrderAdapter implements IOrderPort {
     addTransactionToCart(cartId: string, transactionId: string): Promise<AxiosResponse> {
         const finalUrl = `http://af2656d4febb4451d86617b0e544401e-1306484774.us-east-1.elb.amazonaws.com/carts/${cartId}/transactions/${transactionId}`
 
+        Logger.log(`PUT request to ${finalUrl}`);
         return this.httpService.
             axiosRef.put(finalUrl);
     }
