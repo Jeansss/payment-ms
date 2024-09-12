@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: payment-ms-config
 data:
-  MONGO_CONNECTION_STRING: mongodb+srv://order-manager-admin:KXdkKCNplaugWJA6@cluster0.uszjg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+  MONGO_CONNECTIO: mongodb+srv://order-manager-admin:KXdkKCNplaugWJA6@cluster0.uszjg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
