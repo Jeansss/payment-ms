@@ -21,7 +21,17 @@ export class OrderAdapter implements IOrderPort {
 
 
 
-        return this.httpService.axiosRef.get(finalUrl);
+        return this.httpService.axiosRef.get(finalUrl,
+            { headers: { 'Content-Type': 'application/json' }, proxy: false }
+        ).then((response) => {
+            Logger.log(`response from ${finalUrl}`);
+            Logger.log(response.data);
+            return response;
+        }).catch((error) => {
+            Logger.error(`error from ${finalUrl}`);
+            Logger.error(error);
+            return error;
+        });
 
     }
 
