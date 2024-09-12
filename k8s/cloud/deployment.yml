@@ -19,18 +19,22 @@ spec:
         - containerPort: 3003
         livenessProbe:
           httpGet:
-            path: /
+            path: /payments
             port: 3003
-          initialDelaySeconds: 15
+          initialDelaySeconds: 45
           periodSeconds: 60
         readinessProbe:
           httpGet:
-            path: /
+            path: /payments
             port: 3003
-          initialDelaySeconds: 15
+          initialDelaySeconds: 45
         resources:
           requests:
             cpu: 10m
+            memory: 128Mi
+          limits:
+            cpu: 10m
+            memory: 128Mi
         imagePullPolicy: Always
         # env:
         #   - name: MONGO_CONNECTION_STRING
